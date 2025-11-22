@@ -48,7 +48,7 @@ COMMENT_REPLIES = [
 # Posts que você quer monitorar (ID do post -> configuração)
 MONITORED_POSTS = {
     # Post 1: Itens Milagrosos da Shopee
-    "DQywO5xDAk-": {
+    "18076117025230421": {
         "comment_replies": COMMENT_REPLIES,
         "dm_message": """E aqui estão os links do vídeo "Itens Milagrosos da Shopee que ninguém te conta mas eu sim"
 
@@ -62,7 +62,7 @@ Caso não consiga CLICAR algum link, copie e cole no bloco de notas do seu celul
     },
     
     # Post 2: Top 10 produtos da shopee - Faxina
-    "DQ7fQXZkgk0": {
+    "18059820224230541": {
         "comment_replies": COMMENT_REPLIES,
         "dm_message": """Certo, aqui estão os links do vídeo "Top 10 produtos da shopee que vão salvar as malucas da faxina"
 
