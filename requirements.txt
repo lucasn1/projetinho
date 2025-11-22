@@ -1,0 +1,14 @@
+# Instagram Bot - Dependências
+# Instale com: pip install -r requirements.txt
+
+# Framework web
+flask==3.0.0
+
+# Requisições HTTP
+requests==2.31.0
+
+# Variáveis de ambiente
+python-dotenv==1.0.0
+
+# Servidor WSGI para produção
+gunicorn==21.2.0
