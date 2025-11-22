@@ -7,6 +7,7 @@ import os
 import hmac
 import hashlib
 import logging
+import random
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from instagram_api import InstagramAPI
@@ -37,27 +38,79 @@ instagram = InstagramAPI(ACCESS_TOKEN, INSTAGRAM_ACCOUNT_ID)
 # CONFIGURAÇÃO DE RESPOSTAS AUTOMÁTICAS
 # =============================================================================
 
+# Respostas variadas para comentários (escolhe aleatoriamente)
+COMMENT_REPLIES = [
+    "Todos os itens foram enviados para sua DM! Verifique se você está seguindo a página pra receber tudo direitinho!🥰",
+    "Todos os itens foram enviados para sua caixa de mensagem! Verifique se você está seguindo a página pra receber tudo direitinho!🥰",
+    "Todos os itens foram enviados com sucesso!✅ Siga a página pra receber outros tipos de promoções!!"
+]
+
 # Posts que você quer monitorar (ID do post -> configuração)
 MONITORED_POSTS = {
-    # Exemplo: adicione os IDs dos posts que quer monitorar
-    # "post_id_aqui": {
-    #     "comment_reply": "Obrigado pelo comentário! 🙏",
-    #     "dm_message": "Oi! Vi que você comentou no meu post. Aqui está o link que prometi: https://seulink.com",
-    #     "enabled": True
-    # }
+    # Post 1: Itens Milagrosos da Shopee
+    "DQywO5xDAk-": {
+        "comment_replies": COMMENT_REPLIES,
+        "dm_message": """E aqui estão os links do vídeo "Itens Milagrosos da Shopee que ninguém te conta mas eu sim"
+
+🔗 Aparelho de lifting https://s.shopee.com.br/12ORVX7p6
+🔗 Bastão de argila https://s.shopee.com.br/8AO6Ho4AdC 
+🔗 Creme de arroz https://s.shopee.com.br/8pdn4vZKLU 
+🔗 Máscara de colágeno https://s.shopee.com.br/3LIqX3ww7q 
+
+Caso não consiga CLICAR algum link, copie e cole no bloco de notas do seu celular ou WhatsApp que fica clicável ou acesse o destaque links Acessórios""",
+        "enabled": True
+    },
+    
+    # Post 2: Top 10 produtos da shopee - Faxina
+    "DQ7fQXZkgk0": {
+        "comment_replies": COMMENT_REPLIES,
+        "dm_message": """Certo, aqui estão os links do vídeo "Top 10 produtos da shopee que vão salvar as malucas da faxina"
+
+🔗 Tira pelos https://s.shopee.com.br/3AzWD7SD5l
+🔗 Vassoura 2 em 1 https://s.shopee.com.br/4VUtnbV7rT 
+🔗 Limpa Piso https://s.shopee.com.br/50RAOYssiK
+🔗 Pano metálico https://s.shopee.com.br/2qMfoc93MJ
+🔗 Spray mágico https://s.shopee.com.br/2B6z1Qjyre 
+🔗 Rolo de microfibra https://s.shopee.com.br/9fCzxFPUOA
+🔗 Limpa calçados https://s.shopee.com.br/5VNQzcw8rS 
+🔗 Escovão elétrico https://s.shopee.com.br/70CEmQy1GR 
+
+Caso não consiga CLICAR algum link, copie e cole no bloco de notas do seu celular ou WhatsApp que fica clicável ou acesse o destaque links Acessórios
+
+Temos um grupo também no Whatsapp, onde postamos as melhores promoções todos os dias, caso queira entrar é só clicar no Link abaixo:
+👉 https://chat.whatsapp.com/Kh0sSt3eLnwFbvokLmnrwZ""",
+        "enabled": True
+    }
 }
 
 # Resposta padrão para posts não configurados específicamente
 DEFAULT_RESPONSE = {
-    "comment_reply": None,  # None = não responde comentário
-    "dm_message": None,     # None = não envia DM
+    "comment_replies": None,
+    "dm_message": None,
     "enabled": False
 }
 
 
 def get_post_config(post_id: str) -> dict:
     """Retorna a configuração para um post específico"""
-    return MONITORED_POSTS.get(post_id, DEFAULT_RESPONSE)
+    # Tenta encontrar pelo ID completo ou pelo shortcode
+    if post_id in MONITORED_POSTS:
+        return MONITORED_POSTS[post_id]
+    
+    # Procura pelo shortcode em qualquer parte do ID
+    for shortcode, config in MONITORED_POSTS.items():
+        if shortcode in post_id:
+            return config
+    
+    return DEFAULT_RESPONSE
+
+
+def get_random_reply(config: dict) -> str:
+    """Retorna uma resposta aleatória da lista de respostas"""
+    replies = config.get('comment_replies', [])
+    if replies:
+        return random.choice(replies)
+    return None
 
 
 # =============================================================================
@@ -161,30 +214,27 @@ def handle_comment(comment_data: dict):
     comment_text = comment_data.get('text', '')
     
     logger.info(f"💬 Novo comentário de @{username}: {comment_text}")
+    logger.info(f"📌 Post ID: {post_id}")
     
     # Verificar se devemos responder este post
-    config = get_post_config(post_id)
+    config = get_post_config(str(post_id))
     
     if not config.get('enabled'):
         logger.info(f"Post {post_id} não está configurado para respostas automáticas")
         return
     
-    # Responder o comentário (se configurado)
-    if config.get('comment_reply'):
-        reply_text = config['comment_reply']
-        # Personalizar com nome do usuário se tiver {username}
-        reply_text = reply_text.replace('{username}', username)
-        
+    # Responder o comentário (se configurado) - com variação aleatória
+    reply_text = get_random_reply(config)
+    if reply_text:
         success = instagram.reply_to_comment(comment_id, reply_text)
         if success:
-            logger.info(f"✅ Comentário respondido para @{username}")
+            logger.info(f"✅ Comentário respondido para @{username}: {reply_text[:50]}...")
         else:
             logger.error(f"❌ Falha ao responder comentário")
     
     # Enviar DM (se configurado)
     if config.get('dm_message'):
         dm_text = config['dm_message']
-        dm_text = dm_text.replace('{username}', username)
         
         success = instagram.send_private_reply(comment_id, dm_text)
         if success:
